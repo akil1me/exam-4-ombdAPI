@@ -76,7 +76,7 @@ function bookmarkAdd(obj) {
 renderBooklist(bookmarkArr)
 
 async function movieFetch(IMDbID) {
-  const respone = await fetch(`http://www.omdbapi.com/?apikey=6d47d711&i=${IMDbID}`);
+  const respone = await fetch(`https://www.omdbapi.com/?apikey=6d47d711&i=${IMDbID}`);
 
   const data = await respone.json();
   bookmarkAdd(data);
