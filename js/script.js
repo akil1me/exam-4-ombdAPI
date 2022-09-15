@@ -15,17 +15,22 @@ const elSpinner = document.querySelector(".movies__spinner");
 // MODAL
 const modalContent = document.querySelector("movie__modal-content");
 
-// pagination
+// BOOKMARK LIST
+const bookmarkList = document.querySelector(".movies__bookmark-list");
+
+// PAGINATION
 let pageBtns = document.querySelectorAll(".movies__btns-page");
 let pageResult = document.querySelector(".movies__page-res");
 let page = 1;
 
-// Modal event delegation
+let bookmarkInfo = JSON.parse(localStorage.getItem("movie"));
+let bookmarkArr = bookmarkInfo || [];
+
+// MODAL EVENT DELEGATION
 const renderModal = data => {
   elResultList.addEventListener("click", (evt) => {
     if (evt.target.matches(".movies__button-info")) {
       let movieID = evt.target.closest(".movies__button-info").dataset.imdbID;
-      console.log(movieID);
       let dataSearch = data.find(movie => {
         return movie.imdbID === movieID;
       })
@@ -54,21 +59,79 @@ const renderModal = data => {
   })
 }
 
-// MOVIE RENDER TO TEMPLATE
-const moviesRender = data => {
-  elResultList.innerHTML = null;
+// BOOKMARK ADD LIST
+elResultList.addEventListener("click", (evt) => {
+  if (evt.target.matches(".movies__bookmark-button")) {
+    let bookmarkID = evt.target.closest(".movies__bookmark-button").dataset.imdbID;
+    movieFetch(bookmarkID);
+  }
+})
 
-  const datum = [...data];
+function bookmarkAdd(obj) {
+  bookmarkArr.push(obj);
+  localStorage.setItem("movie", JSON.stringify(bookmarkArr));
+
+  renderBooklist(bookmarkArr)
+}
+renderBooklist(bookmarkArr)
+
+async function movieFetch(IMDbID) {
+  const respone = await fetch(`http://www.omdbapi.com/?apikey=6d47d711&i=${IMDbID}`);
+
+  const data = await respone.json();
+  bookmarkAdd(data);
+}
+
+// BOOKLIST RENDER
+function renderBooklist(bookArr) {
+  bookmarkList.innerHTML = null;
+
+  bookArr.forEach(book => {
+    bookmarkList.innerHTML += `
+    <li class="card mb-2 flex-row position-relative">
+      <img class="rounded" src="${book.Poster}" width="70" height="100">
+
+      <div class="ms-3 ">
+      <h6 class="text-start pe-5">${book.Title}</h6>
+      <p class="text-start">Year: ${book.Year}</p>
+      </div>
+
+      <button type="button" class="booklist__btn btn-close position-absolute top-0 end-0" id="${book.imdbID}"></button>
+    </li>
+    `
+  })
+}
+
+// BOOKLIST RENDER DELITE
+function bookmarkListDelite() {
+  bookmarkList.addEventListener("click", evt => {
+    if (evt.target.matches(".booklist__btn")) {
+      let buttonId = evt.target.id;
+
+      let buttonFindIndex = bookmarkArr.findIndex(movie => movie.imdbID === buttonId)
+
+      bookmarkArr.splice(buttonFindIndex, 1);
+
+      renderBooklist(bookmarkArr);
+      localStorage.setItem("movie", JSON.stringify(bookmarkArr))
+    }
+  })
+}
+bookmarkListDelite()
+
+// MOVIE RENDER TO TEMPLATE
+const moviesRender = datas => {
+  elResultList.innerHTML = null;
 
   const elFragment = document.createDocumentFragment();
 
-  datum.forEach(data => {
+  datas.forEach(data => {
     const copyFragment = elTemplate.cloneNode(true);
 
     copyFragment.querySelector(".movies__img-poster").src = data.Poster;
     copyFragment.querySelector(".movies__img-poster").alt = data.Title;
 
-    copyFragment.querySelector(".movies__card-title").innerHTML = `${data.Title.split(" ").slice(0, 5).join(" ")}...`;
+    copyFragment.querySelector(".movies__card-title").innerHTML = `${data.Title.split(" ").slice(0, 3).join(" ")}...`;
 
     copyFragment.querySelector(".movies__categoty").textContent = `Category: ${data.Type}`;
 
@@ -76,8 +139,9 @@ const moviesRender = data => {
 
     copyFragment.querySelector(".movies__button-info").dataset.imdbID = data.imdbID;
 
-    elFragment.append(copyFragment);
+    copyFragment.querySelector(".movies__bookmark-button").dataset.imdbID = data.imdbID;
 
+    elFragment.append(copyFragment);
   })
 
   elResultList.appendChild(elFragment);
@@ -106,7 +170,6 @@ const moviesFetch = async (title = "", categoty = "", page = 1) => {
 
   } catch {
     error("Kechitasiz siz qidirgan kino y'oq");
-
   }
   finally {
     spinnerAdd()
@@ -124,7 +187,7 @@ function spinnerAdd() {
 
 // GET DEFAULT VALUE ON FETNCH
 let serchValue = "spider man";
-let selectValue = "";
+let selectValue = "movie";
 moviesFetch(serchValue, selectValue, page);
 
 spinnerRemove();
